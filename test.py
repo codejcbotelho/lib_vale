@@ -1,7 +1,7 @@
 import json
 import os
-from lib_kerberos_auth import KerberosAuth
-from lib_kerberos_enum import UserStatus
+from lib_vale.auth import Login
+from lib_vale.enums import UserStatus
 
 def lambda_handler(event, context):
     try:
@@ -27,7 +27,7 @@ def lambda_handler(event, context):
             }
         
         # Inicializar KerberosAuth
-        auth = KerberosAuth(
+        auth = Login(
             host=db_config['host'],
             dbname=db_config['dbname'],
             table=db_config['table'],

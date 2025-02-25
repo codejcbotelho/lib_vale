@@ -1,16 +1,15 @@
 import pymysql
 import json
-import os
 import logging
 import boto3
 from botocore.exceptions import ClientError
-from lib_kerberos_enum import UserStatus
+from lib_vale.enums import UserStatus
 
 # Configuração do logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-class KerberosAuth:
+class Login:
     def __init__(self, host: str, dbname: str, table: str, secret_name: str, region_name: str = "us-east-1"):
         """
         Inicializa a biblioteca de autenticação.
