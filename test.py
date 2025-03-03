@@ -35,7 +35,7 @@ def lambda_handler(event, context):
         )
         
         # Tentar autenticar
-        user_id, status = auth.authenticate(user, password)
+        user_id, status, jwt = auth.authenticate(user, password, service_name="trocai")
         
         if user_id:
             return {
@@ -43,6 +43,7 @@ def lambda_handler(event, context):
                 'body': json.dumps({
                     'user_id': user_id,
                     'status': status,
+                    'token': jwt,
                     'message': 'Autenticação bem-sucedida'
                 })
             }
