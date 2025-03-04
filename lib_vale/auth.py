@@ -59,7 +59,7 @@ class Login:
             logger.error(f"Erro ao buscar secrets do Secrets Manager: {str(e)}")
             raise Exception("Falha ao recuperar credenciais necessárias")
 
-        logger.info(f"KerberosAuth inicializado para host: {host}, database: {dbname}, tabela: {table}")
+        logger.info(f"ValeAuth inicializado para host: {host}, database: {dbname}, tabela: {table}")
 
         # Inicializar cliente DynamoDB
         self.dynamodb = boto3.resource('dynamodb', region_name=region_name)
@@ -178,6 +178,8 @@ class Login:
                     'jwt': token
                 }
             )
+
+            logger.info(f"Token encontrado para o serviço {service_name}: {response}")
             
             if 'Item' not in response:
                 logger.warning(f"Token não encontrado para o serviço {service_name}")
