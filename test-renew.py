@@ -1,16 +1,12 @@
-from lib_vale.auth import Login
+from lib_vale.auth import Auth
 
-# Instanciar a classe Login com os parâmetros necessários
-auth = Login(
-    host="localhost",
-    dbname="trocai",
-    table="user",
+# Instanciar a classe Auth
+auth = Auth(
     secret_name="secret-trocai-db"
 )
 
 is_valid, message, token_data = auth.verify_and_renew_token(
-    token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMiwiZW1haWwiOiJqb2FvY2xhdWRpb2JyOTJAZ21haWwuY29tIiwiZXhwIjoxNzQxNjI1NjM0fQ.whfihqvgk1_NM0-0R7y9EGi29mK6VpilQD1StDkcBRI",
-    service_name="trocai"
+    token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMiwiZW1haWwiOiJqb2FvY2xhdWRpb2JyOTJAZ21haWwuY29tIiwiZXhwIjoxNzQxNjYxMDMzfQ.WdxS5KiBOhj6tsNTm4q1DyytHcnv_6UGHeBra7q5hFA"
 )
 
 if is_valid:

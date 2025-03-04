@@ -11,20 +11,16 @@ from lib_vale.enums import UserStatus, TokenExpiration
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-class Login:
-    def __init__(self, host: str, dbname: str, table: str, secret_name: str, region_name: str = "us-east-1"):
+class Auth:
+    def __init__(self, secret_name: str, service_name: str = "trocai", region_name: str = "us-east-1"):
         """
         Inicializa a biblioteca de autenticação.
 
-        :param host: Endereço do servidor MySQL.
-        :param dbname: Nome do banco de dados
-        :param table: Nome da tabela de usuários
         :param secret_name: Nome do secret no AWS Secrets Manager
+        :param service_name: Nome do serviço (ex: trocai)
         :param region_name: Região AWS do Secrets Manager
         """
-        self.host = host
-        self.table = table
-        self.dbname = dbname
+        self.service_name = service_name
         
         # Buscar credenciais do Secrets Manager
         try:
@@ -43,6 +39,9 @@ class Login:
                 secret = json.loads(get_secret_value_response['SecretString'])
                 self.db_user = secret.get('username')
                 self.db_password = secret.get('password')
+                self.host = secret.get('host')
+                self.dbname = secret.get('dbname')
+                self.table = secret.get('table')
                 logger.info(f"Credenciais recuperadas com sucesso do Secrets Manager")
 
             # Buscar salt do JWT
@@ -59,19 +58,18 @@ class Login:
             logger.error(f"Erro ao buscar secrets do Secrets Manager: {str(e)}")
             raise Exception("Falha ao recuperar credenciais necessárias")
 
-        logger.info(f"ValeAuth inicializado para host: {host}, database: {dbname}, tabela: {table}")
+        logger.info(f"ValeAuth inicializado para host: {self.host}, database: {self.dbname}, tabela: {self.table}")
 
         # Inicializar cliente DynamoDB
         self.dynamodb = boto3.resource('dynamodb', region_name=region_name)
         self.tokens_table = self.dynamodb.Table('vale-tokens')
 
-    def authenticate(self, user: str, psw: str, service_name: str = "trocai"):
+    def authenticate(self, user: str, psw: str):
         """
         Autentica um usuário e gera um token JWT.
 
         :param user: Email do usuário.
         :param psw: Senha do usuário.
-        :param service_name: Nome do serviço que está chamando a autenticação.
         :return: Tupla (user_id, status, token) ou (None, USUARIO_NAO_ENCONTRADO, None) caso falhe.
         """
         if not self._validate_email(user):
@@ -125,7 +123,7 @@ class Login:
                 try:
                     self.tokens_table.put_item(
                         Item={
-                            'service': service_name,
+                            'service': self.service_name,
                             'jwt': token,
                             'user_id': result["id"],
                             'email': user,
@@ -159,30 +157,26 @@ class Login:
         pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
         return bool(re.match(pattern, email))
 
-    def verify_and_renew_token(self, token: str, service_name: str) -> tuple:
+    def verify_and_renew_token(self, token: str) -> tuple:
         """
-        Verifica se um token JWT é válido e o renova por mais 30 segundos se necessário.
+        Verifica se um token JWT é válido e o renova por mais 30 segundos.
 
         :param token: Token JWT a ser verificado
-        :param service_name: Nome do serviço (ex: trocai)
         :return: Tupla (bool, str, dict) contendo (is_valid, message, token_data)
-            is_valid: True se o token for válido ou renovado com sucesso
-            message: Mensagem descritiva do resultado
-            token_data: Dicionário com dados do token (None se inválido)
         """
         try:
             # Verificar se o token existe no DynamoDB
             response = self.tokens_table.get_item(
                 Key={
-                    'service': service_name,
+                    'service': self.service_name,
                     'jwt': token
                 }
             )
 
-            logger.info(f"Token encontrado para o serviço {service_name}: {response}")
+            logger.info(f"Token encontrado para o serviço {self.service_name}: {response}")
             
             if 'Item' not in response:
-                logger.warning(f"Token não encontrado para o serviço {service_name}")
+                logger.warning(f"Token não encontrado para o serviço {self.service_name}")
                 return False, "Token não encontrado", None
             
             token_item = response['Item']
@@ -200,7 +194,7 @@ class Login:
             # Atualizar apenas a expiração no DynamoDB, mantendo o mesmo token
             self.tokens_table.update_item(
                 Key={
-                    'service': service_name,
+                    'service': self.service_name,
                     'jwt': token
                 },
                 UpdateExpression='SET expiration = :exp, expires_at = :ttl',
