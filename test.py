@@ -1,6 +1,6 @@
 import json
 import os
-from lib_vale.auth import Login
+from lib_vale.auth import Auth
 from lib_vale.enums import UserStatus
 
 def lambda_handler(event, context):
@@ -26,16 +26,13 @@ def lambda_handler(event, context):
                 })
             }
         
-        # Inicializar KerberosAuth
-        auth = Login(
-            host=db_config['host'],
-            dbname=db_config['dbname'],
-            table=db_config['table'],
-            secret_name=db_config['secret_name']
+        # Inicializar Auth
+        auth = Auth(
+            secret_name="secret-trocai-db"
         )
         
         # Tentar autenticar
-        user_id, status, jwt = auth.authenticate(user, password, service_name="trocai")
+        user_id, status, jwt = auth.authenticate(user, password)
         
         if user_id:
             return {
